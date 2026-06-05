@@ -11,7 +11,7 @@ const { errorMiddleware, notFound } = require("./middleware/error.middleware");
 connectDB();
 
 const app = express();
-
+app.set("trust proxy", 1);
 app.use(helmet());
 
 app.use(
