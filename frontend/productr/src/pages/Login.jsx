@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API = "http://localhost:5000/api";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -80,57 +80,26 @@ export default function Login() {
       fontFamily: "'Segoe UI', Arial, sans-serif",
       background: "#f8f9fb",
     }}>
-      <div
-  style={{
-    width: "50%",
-    minHeight: "100vh",
-    background: "#f8f9fb",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "24px",
-    boxSizing: "border-box",
-    position: "relative",
-    overflow: "hidden",
-  }}
->
-  {/* Background Circles */}
-  <div
-    style={{
-      position: "absolute",
-      width: 380,
-      height: 380,
-      borderRadius: "50%",
-      background: "rgba(180,190,230,0.45)",
-      top: -100,
-      left: -100,
-    }}
-  />
-
-  <div
-    style={{
-      position: "absolute",
-      width: 280,
-      height: 280,
-      borderRadius: "50%",
-      background: "rgba(200,180,220,0.4)",
-      bottom: -60,
-      right: -60,
-    }}
-  />
-
-  {/* IMAGE */}
-  <img
-    src="/image.png"
-    alt="login"
-    style={{
-        width: "100%",
-    maxWidth: "800px",
-    maxHeight: "90vh",
-    objectFit: "contain",
-    }}
-  />
-</div>
+      {/* LEFT PANEL */}
+      <div style={{
+        width: "50%", minHeight: "100vh",
+        background: "#f8f9fb",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "24px", boxSizing: "border-box",
+      }}>
+        <img
+          src="/image.png"
+          alt="Productr"
+          style={{
+            width: "100%",
+            height: "calc(100vh - 48px)",
+            maxHeight: 700,
+            objectFit: "cover",
+            borderRadius: 28,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.15)",
+          }}
+        />
+      </div>
 
       {/* RIGHT PANEL */}
       <div style={{
@@ -153,8 +122,7 @@ export default function Login() {
 
             {step === "email" && (
               <>
-                <label style={{ fontSize: 13, color: "#555", fontWeight: 500, display: "block", marginBottom: 6, maxWidth: 380,
-      margin: "0 auto",  }}>
+                <label style={{ fontSize: 13, color: "#555", fontWeight: 500, display: "block", marginBottom: 6 }}>
                   Email or Phone number
                 </label>
                 <input type="text" placeholder="Acme@gmail.com" value={email}
@@ -216,7 +184,8 @@ export default function Login() {
         {step === "email" && (
           <div style={{ padding: "0 60px 40px" }}>
             <div style={{ border: "1.5px solid #e5e7eb", borderRadius: 8,
-              padding: "14px 20px", textAlign: "center", background: "#fff" }}>
+              padding: "14px 20px", textAlign: "center", background: "#fff",
+              maxWidth: 380, margin: "0 auto" }}>
               <p style={{ margin: "0 0 4px", fontSize: 13, color: "#888" }}>
                 Don't have a Productr Account
               </p>

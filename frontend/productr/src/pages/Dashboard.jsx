@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API = "http://localhost:5000/api";
 const getAuthHeader = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
 const PRODUCT_TYPES = ["Food", "Electronics", "Fashion", "Grocery", "Beauty", "Furniture"];
 const labelStyle = { fontSize: 13, color: "#1a1a2e", fontWeight: 500, display: "block", marginBottom: 6 };
@@ -183,7 +183,8 @@ function ProductCard({ product, onPublishToggle, onDelete, onEdit }) {
             onClick={() => onPublishToggle(product._id, product.isPublished)}
             style={{
               flex: 1, padding: "8px 0", fontSize: 13, fontWeight: 600,
-              border: "none", borderRadius: 6, cursor: "pointer",
+              border: product.isPublished ? "none" : "none",
+              borderRadius: 6, cursor: "pointer",
               background: product.isPublished ? "#22c55e" : "#1e3a8a",
               color: "#fff",
             }}>
@@ -209,7 +210,7 @@ function ProductCard({ product, onPublishToggle, onDelete, onEdit }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("unpublished");
+  const [activeTab, setActiveTab] = useState("published");
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [products, setProducts] = useState([]);
@@ -221,18 +222,20 @@ export default function Dashboard() {
     setTimeout(() => setToast(""), 3000);
   };
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const endpoint = activeTab === "published" ? "published" : "unpublished";
-      const res = await axios.get(`${API}/products/${endpoint}`, getAuthHeader());
-      setProducts(res.data.data.products);
-    } catch (err) {
-      if (err.response?.status === 401) { localStorage.clear(); navigate("/login"); }
-    } finally { setLoading(false); }
-  };
+ const fetchProducts = async () => {
+  setLoading(true);
+  try {
+    const res = await axios.get(`${API}/products`, getAuthHeader());
+    setProducts(res.data.data.products);
+  } catch (err) {
+    if (err.response?.status === 401) { localStorage.clear(); navigate("/login"); }
+  } finally { setLoading(false); }
+};
 
   useEffect(() => { fetchProducts(); }, [activeTab]);
+  const filteredProducts = products.filter(p =>
+  activeTab === "published" ? p.isPublished : !p.isPublished
+);
 
   const handlePublishToggle = async (id, isPublished) => {
     try {
