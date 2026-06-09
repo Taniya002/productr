@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getAuthHeader = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
 const PRODUCT_TYPES = ["Food", "Electronics", "Fashion", "Grocery", "Beauty", "Furniture"];
 const labelStyle = { fontSize: 13, color: "#1a1a2e", fontWeight: 500, display: "block", marginBottom: 6 };
@@ -216,26 +216,32 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
 
- const fetchProducts = async () => {
-  setLoading(true);
-  try {
-    const res = await axios.get(`${API}/products`, getAuthHeader());
-    setProducts(res.data.data.products);
-  } catch (err) {
-    if (err.response?.status === 401) { localStorage.clear(); navigate("/login"); }
-  } finally { setLoading(false); }
-};
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const endpoint = activeTab === "published" ? "published" : "unpublished";
+      const res = await axios.get(`${API}/products/${endpoint}`, getAuthHeader());
+      setProducts(res.data.data.products);
+    } catch (err) {
+      if (err.response?.status === 401) { localStorage.clear(); navigate("/login"); }
+    } finally { setLoading(false); }
+  };
 
   useEffect(() => { fetchProducts(); }, [activeTab]);
-  const filteredProducts = products.filter(p =>
-  activeTab === "published" ? p.isPublished : !p.isPublished
-);
 
   const handlePublishToggle = async (id, isPublished) => {
     try {
@@ -258,47 +264,77 @@ export default function Dashboard() {
   const handleEdit = (product) => { setEditProduct(product); setShowModal(true); };
   const handleLogout = () => { localStorage.clear(); navigate("/login"); };
 
+  const filteredProducts = products.filter(p =>
+    activeTab === "published" ? p.isPublished : !p.isPublished
+  );
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'Segoe UI', Arial, sans-serif", background: "#fff" }}>
 
-      {/* SIDEBAR */}
-      <div style={{ width: 170, minHeight: "100vh", background: "#1a1a2e", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "18px 16px 14px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Productr</span>
-          <span style={{ fontSize: 15 }}></span>
-        </div>
-        <div style={{ padding: "12px 12px 8px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", borderRadius: 6, padding: "7px 10px" }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Search</span>
+      {/* SIDEBAR — hidden on mobile, overlay when open */}
+      {(!isMobile || sidebarOpen) && (
+        <div style={{
+          width: 170, minHeight: "100vh", background: "#1a1a2e",
+          display: "flex", flexDirection: "column", flexShrink: 0,
+          position: isMobile ? "fixed" : "relative",
+          zIndex: isMobile ? 300 : "auto",
+          top: 0, left: 0, bottom: 0,
+        }}>
+          <div style={{ padding: "18px 16px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Productr</span>
+              <span style={{ fontSize: 15 }}></span>
+            </div>
+            {isMobile && (
+              <div onClick={() => setSidebarOpen(false)} style={{ color: "#fff", fontSize: 18, cursor: "pointer" }}>✕</div>
+            )}
+          </div>
+          <div style={{ padding: "12px 12px 8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", borderRadius: 6, padding: "7px 10px" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Search</span>
+            </div>
+          </div>
+          <div style={{ padding: "6px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 6, cursor: "pointer" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>Home</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 6, background: "rgba(255,255,255,0.1)", cursor: "pointer" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              <span style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>Products</span>
+            </div>
           </div>
         </div>
-        <div style={{ padding: "6px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 6, cursor: "pointer" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>Home</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 6, background: "rgba(255,255,255,0.1)", cursor: "pointer" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            <span style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>Products</span>
-          </div>
-        </div>
-      </div>
+      )}
+
+      {/* Overlay for mobile sidebar */}
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 200 }} />
+      )}
 
       {/* MAIN */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
 
         {/* HEADER */}
-        <div style={{ height: 52, background: "linear-gradient(90deg, #ffd6e0 0%, #fff3b0 50%, #d4f0ff 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div style={{ height: 52, background: "linear-gradient(90deg, #ffd6e0 0%, #fff3b0 50%, #d4f0ff 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {isMobile && (
+              <div onClick={() => setSidebarOpen(true)} style={{ cursor: "pointer", display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ width: 18, height: 2, background: "#555", borderRadius: 2 }} />
+                <div style={{ width: 18, height: 2, background: "#555", borderRadius: 2 }} />
+                <div style={{ width: 18, height: 2, background: "#555", borderRadius: 2 }} />
+              </div>
+            )}
             <span style={{ fontSize: 13, color: "#555" }}>Products</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.6)", borderRadius: 6, padding: "5px 12px" }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <span style={{ fontSize: 13, color: "#aaa" }}>Search Services, Products</span>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {!isMobile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.6)", borderRadius: 6, padding: "5px 12px" }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <span style={{ fontSize: 13, color: "#aaa" }}>Search Services, Products</span>
+              </div>
+            )}
             <div onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} title="Logout">
               <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#c0c0d0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="#888"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -308,8 +344,22 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* TABS */}
+        <div style={{ display: "flex", borderBottom: "1.5px solid #e5e7eb", padding: "0 16px", background: "#fff", flexShrink: 0 }}>
+          {["published", "unpublished"].map((tab) => (
+            <div key={tab} onClick={() => setActiveTab(tab)} style={{
+              padding: "14px 16px 12px", fontSize: 14,
+              fontWeight: activeTab === tab ? 600 : 400,
+              color: activeTab === tab ? "#1a1a2e" : "#888",
+              borderBottom: activeTab === tab ? "2.5px solid #1e3a8a" : "2.5px solid transparent",
+              cursor: "pointer", marginBottom: -1.5 }}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </div>
+          ))}
+        </div>
+
         {/* PAGE CONTENT */}
-        <div style={{ flex: 1, padding: "20px 24px", background: "#fff" }}>
+        <div style={{ flex: 1, padding: isMobile ? "16px" : "20px 24px", background: "#fff" }}>
 
           {/* Top Row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -323,7 +373,7 @@ export default function Dashboard() {
             <div style={{ display: "flex", justifyContent: "center", paddingTop: 80 }}>
               <p style={{ color: "#888", fontSize: 14 }}>Loading...</p>
             </div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80 }}>
               <svg width="52" height="52" viewBox="0 0 52 52" fill="none" style={{ marginBottom: 16 }}>
                 <rect x="2" y="2" width="20" height="20" rx="3" stroke="#1e3a8a" strokeWidth="3"/>
@@ -341,8 +391,8 @@ export default function Dashboard() {
               </button>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))", gap: 16 }}>
-              {products.map((p) => (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(240px,1fr))", gap: 16 }}>
+              {filteredProducts.map((p) => (
                 <ProductCard key={p._id} product={p}
                   onPublishToggle={handlePublishToggle}
                   onDelete={handleDelete}

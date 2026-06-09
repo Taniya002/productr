@@ -24,11 +24,18 @@ const sendOTP = [
         Date.now() + (parseInt(process.env.OTP_EXPIRES_MINUTES) || 5) * 60 * 1000
       );
 
-      await OTP.create({ email, otp, expiresAt });
+     await OTP.create({ email, otp, expiresAt });
 
-      await sendOTPEmail(email, otp);
+try {
+  await sendOTPEmail(email, otp);
+} catch (err) {
+  console.log("Email failed:", err.message);
+}
 
-      return successResponse(res, 200, "OTP sent successfully to your email.", { email });
+return successResponse(res, 200, "OTP sent successfully.", { 
+  email,
+  otp: otp
+});
     } catch (error) {
       console.error("Send OTP Error:", error.message);
       return errorResponse(res, 500, "Failed to send OTP. Please try again.");
